@@ -1,6 +1,8 @@
 # Outmate.ai — Multi-Agent GTM Intelligence System
 
 A production-grade AI system that converts natural language GTM (Go-To-Market) queries into actionable outbound intelligence. Powered by 5 autonomous AI agents orchestrated through a pipeline with retry logic, ICP scoring, and real-time streaming.
+<img width="1919" height="679" alt="image" src="https://github.com/user-attachments/assets/e4302366-c940-440b-ab66-84f04c17ffe3" />
+
 
 ## What It Does
 
@@ -17,6 +19,7 @@ The system will:
 
 Results display in a real-time UI with a downloadable PDF report.
 
+**This is not a simple LLM pipeline — it is a reasoning-driven, failure-aware, self-correcting system.
 ---
 
 ## Quick Start
@@ -240,6 +243,8 @@ OUTMATE_LLM_MODEL=gemini-2.5-flash       # try a different model
 Each model has its own separate quota bucket.
 
 ---
+## Demo Video link: 
+https://drive.google.com/file/d/194OAq2YXT1IJYaabAHW-iST3whUy-cNn/view?usp=drive_link
 
 ## Tech Stack
 

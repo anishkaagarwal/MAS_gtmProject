@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # --- API ---
     api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_port: int = int(__import__("os").environ.get("PORT", 8000))
     cors_origins: str = "*"
 
     # --- Observability ---

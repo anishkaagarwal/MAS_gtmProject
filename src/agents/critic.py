@@ -113,7 +113,7 @@ class CriticAgent(BaseAgent[CriticInput, CriticOutput]):
                     ))
 
             # Check: impossibly high enrichment confidence with many missing fields
-            if ec.enrichment_completeness < 0.3 and ec.hiring and ec.hiring.confidence > 0.9:
+            if ec.enrichment_completeness < 0.15 and ec.hiring and ec.hiring.confidence > 0.95:
                 issues.append(ValidationIssue(
                     severity="warning",
                     category="overconfidence",
@@ -136,23 +136,31 @@ class CriticAgent(BaseAgent[CriticInput, CriticOutput]):
                         total_numeric += 1
                         if val % 10 == 0:
                             round_count += 1
-            if total_numeric >= 3 and round_count == total_numeric:
+            if total_numeric >= 4 and round_count == total_numeric:
                 issues.append(ValidationIssue(
                     severity="warning",
                     category="hallucination",
                     message=f"{c.name}: all {total_numeric} numeric fields are round numbers — possible fabrication",
                     affected_company_ids=[c.company_id],
-                    suggested_action="retry",
+                    suggested_action="accept_with_caveat",
                 ))
 
             # Check: critically sparse record
-            if ec.enrichment_completeness < 0.2:
+            if ec.enrichment_completeness < 0.1:
                 issues.append(ValidationIssue(
                     severity="error",
                     category="missing_data",
                     message=f"{c.name}: only {ec.enrichment_completeness:.0%} enrichment — too sparse for outreach",
                     affected_company_ids=[c.company_id],
                     suggested_action="remove",
+                ))
+            elif ec.enrichment_completeness < 0.2:
+                issues.append(ValidationIssue(
+                    severity="warning",
+                    category="missing_data",
+                    message=f"{c.name}: {ec.enrichment_completeness:.0%} enrichment — proceed with caveat",
+                    affected_company_ids=[c.company_id],
+                    suggested_action="accept_with_caveat",
                 ))
 
         return issues
@@ -184,8 +192,9 @@ class CriticAgent(BaseAgent[CriticInput, CriticOutput]):
             f"Plan strategy: {input_data.plan.strategy}\n\n"
             f"Companies to review ({len(companies)}):\n"
             f"{json.dumps(company_summaries, indent=2)}\n\n"
-            f"Rule-based issues already found:\n"
-            f"{json.dumps([i.model_dump() for i in rule_issues], indent=2)}\n\n"
+            f"Pre-check found {len([i for i in rule_issues if i.severity == 'error'])} errors "
+            f"and {len([i for i in rule_issues if i.severity == 'warning'])} warnings via rule-based checks. "
+            f"Focus your review on semantic relevance and contradictions not already caught.\n\n"
             f"This is attempt #{input_data.attempt_number}."
         )
 

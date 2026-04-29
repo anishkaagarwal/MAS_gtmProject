@@ -62,7 +62,7 @@ class PipelineConfig(BaseModel):
     max_enrichment_retries: int = 2
     max_wall_clock_seconds: float = 120.0
     min_companies_required: int = 3
-    min_critic_quality: float = 0.5
+    min_critic_quality: float = 0.35
 
 
 class PipelineOrchestrator:

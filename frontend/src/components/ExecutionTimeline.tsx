@@ -63,10 +63,10 @@ function AgentThinkingCard({ step }: { step: AgentStep }) {
           {/* Planner reasoning */}
           {step.name === 'planner' && (
             <>
-              {d.reasoning_summary && (
+              {!!d.reasoning_summary && (
                 <p className="thinking-card__reasoning">{String(d.reasoning_summary)}</p>
               )}
-              {d.strategy && (
+              {!!d.strategy && (
                 <div className="thinking-card__fact">
                   <span className="thinking-card__fact-label">Strategy</span>
                   <span>{String(d.strategy)}</span>
@@ -116,7 +116,7 @@ function AgentThinkingCard({ step }: { step: AgentStep }) {
           {/* Critic */}
           {step.name === 'critic' && (
             <>
-              {d.reasoning_summary && (
+              {!!d.reasoning_summary && (
                 <p className="thinking-card__reasoning">{String(d.reasoning_summary)}</p>
               )}
               <div className="thinking-card__chips">
@@ -131,7 +131,7 @@ function AgentThinkingCard({ step }: { step: AgentStep }) {
                 {d.companies_rejected !== undefined && Number(d.companies_rejected) > 0 && (
                   <span className="thinking-chip thinking-chip--error">{String(d.companies_rejected)} rejected</span>
                 )}
-                {d.action && (
+                {!!d.action && (
                   <span className="thinking-chip">→ {String(d.action).replace('_', ' ')}</span>
                 )}
               </div>

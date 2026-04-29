@@ -5,6 +5,7 @@ No magic config files. Code is the single source of truth.
 
 from __future__ import annotations
 
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings
 
 
@@ -38,7 +39,8 @@ class Settings(BaseSettings):
 
     # --- API ---
     api_host: str = "0.0.0.0"
-    api_port: int = int(__import__("os").environ.get("PORT", 8000))
+    # PORT is Railway's injected port and must take priority over OUTMATE_API_PORT
+    api_port: int = Field(default=8000, validation_alias=AliasChoices("PORT", "OUTMATE_API_PORT"))
     cors_origins: str = "*"
 
     # --- Observability ---

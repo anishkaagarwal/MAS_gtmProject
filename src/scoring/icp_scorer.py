@@ -18,6 +18,25 @@ from typing import Any
 
 from src.models.schemas import EnrichedCompany, ICPScore, PlannerOutput
 
+
+def _parse_size_range(val: Any) -> tuple[int, int]:
+    if not val:
+        return (50, 500)
+    if isinstance(val, (list, tuple)) and len(val) == 1:
+        val = val[0]
+    if isinstance(val, (list, tuple)) and len(val) == 2:
+        try:
+            return (int(val[0]), int(val[1]))
+        except (ValueError, TypeError):
+            pass
+    if isinstance(val, str) and "-" in val:
+        parts = val.split("-", 1)
+        try:
+            return (int(parts[0].strip()), int(parts[1].strip()))
+        except (ValueError, TypeError):
+            pass
+    return (50, 500)
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,7 +90,7 @@ class ICPScorer:
         return cls(
             target_industries=f.get("industry", []),
             target_geographies=f.get("geography", []),
-            target_size_range=tuple(f.get("employee_range", [50, 500])),
+            target_size_range=_parse_size_range(f.get("employee_range")),
             target_funding_stages=f.get("funding_stage", []),
             target_tech_stack=f.get("tech_stack", []),
         )

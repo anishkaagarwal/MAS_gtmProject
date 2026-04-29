@@ -27,6 +27,29 @@ from src.models.schemas import (
 logger = logging.getLogger(__name__)
 
 
+def _parse_employee_range(val: Any) -> tuple[int, int] | None:
+    """Parse employee_range from LLM output which may be [50,1000], ["50-1000"], or "50-1000"."""
+    if not val:
+        return None
+    # Unwrap single-element list: ["50-1000"] → "50-1000"
+    if isinstance(val, (list, tuple)) and len(val) == 1:
+        val = val[0]
+    # Two-element list/tuple of numbers: [50, 1000]
+    if isinstance(val, (list, tuple)) and len(val) == 2:
+        try:
+            return (int(val[0]), int(val[1]))
+        except (ValueError, TypeError):
+            return None
+    # String "50-1000"
+    if isinstance(val, str) and "-" in val:
+        parts = val.split("-", 1)
+        try:
+            return (int(parts[0].strip()), int(parts[1].strip()))
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
 class RetrievalInput(BaseModel):
     plan: PlannerOutput
     relaxation_level: int = 0  # 0 = strict, 1 = relaxed, 2 = very relaxed
@@ -62,7 +85,7 @@ class RetrievalAgent(BaseAgent[RetrievalInput, RetrievalOutput]):
         base = RetrievalFilter(
             industry=f.get("industry"),
             geography=f.get("geography"),
-            employee_range=tuple(f["employee_range"]) if f.get("employee_range") else None,
+            employee_range=_parse_employee_range(f.get("employee_range")),
             funding_stage=f.get("funding_stage"),
             keywords=f.get("keywords"),
             tech_stack=f.get("tech_stack"),

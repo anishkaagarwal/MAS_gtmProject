@@ -355,10 +355,25 @@ def main() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-    def orchestrator_factory():
-        return build_orchestrator(settings)
+    key_hint = f"***{settings.llm_api_key[-4:]}" if len(settings.llm_api_key) > 4 else "(NOT SET)"
+    logging.info(
+        "Config resolved — provider=%s model=%s api_key=%s port=%d",
+        settings.llm_provider, settings.llm_model, key_hint, settings.api_port,
+    )
 
-    app = create_app(orchestrator_factory=orchestrator_factory)
+    # Build orchestrator at startup so misconfiguration fails immediately
+    # (rather than crashing silently on the first request)
+    try:
+        orchestrator = build_orchestrator(settings)
+    except ValueError as exc:
+        logging.error("STARTUP CONFIG ERROR: %s", exc)
+        logging.error(
+            "Required Railway service variables: "
+            "OUTMATE_LLM_PROVIDER, OUTMATE_LLM_API_KEY, OUTMATE_LLM_MODEL"
+        )
+        sys.exit(1)
+
+    app = create_app(orchestrator_factory=lambda: orchestrator)
 
     logging.info(
         "Starting Multi-Agent GTM Intelligence System on %s:%d (LLM: %s)",

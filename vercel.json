@@ -1,12 +1,12 @@
 {
   "framework": null,
   "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR-RAILWAY-URL.up.railway.app/api/:path*"
+      "destination": "web-production-78346.up.railway.app/api/:path*"
     }
   ]
 }

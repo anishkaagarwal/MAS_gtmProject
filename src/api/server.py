@@ -157,7 +157,12 @@ def create_app(orchestrator_factory: Any = None) -> FastAPI:
 
         async def event_generator():
             while True:
-                event = await queue.get()
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15.0)
+                except asyncio.TimeoutError:
+                    # Send a keep-alive comment so the browser doesn't close the connection
+                    yield ": heartbeat\n\n"
+                    continue
                 if event is None:
                     # Pipeline complete — send final result
                     final_job = jobs.get(request_id)

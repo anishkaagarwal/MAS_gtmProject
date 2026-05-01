@@ -79,44 +79,65 @@ class MockLLMClient:
             industries.append("ai")
         if "saas" in user_lower:
             industries.append("saas")
-        if "fintech" in user_lower:
+        if "fintech" in user_lower or "finance" in user_lower or "payments" in user_lower:
             industries.append("fintech")
+        if "cyber" in user_lower or "security" in user_lower:
+            industries.append("cybersecurity")
         if not industries:
             industries = ["saas", "ai"]
 
-        # Extract geography hints
+        # Only add geography if the query explicitly names a region
         geos = []
-        if "us" in user_lower or "united states" in user_lower or "america" in user_lower:
+        if "us " in user_lower or "united states" in user_lower or "america" in user_lower or " us," in user_lower:
             geos.append("us")
-        if "uk" in user_lower or "europe" in user_lower:
+        if "uk" in user_lower or "britain" in user_lower:
+            geos.append("uk")
+        if "europe" in user_lower or "eu" in user_lower:
             geos.append("eu")
-        if not geos:
-            geos = ["us"]
+        if "india" in user_lower:
+            geos.append("india")
+        # No default — leave geos empty for global searches
+
+        # Only add employee_range if query explicitly mentions company size
+        employee_range = None
+        if "50-200" in user_lower or "50 to 200" in user_lower:
+            employee_range = [50, 200]
+        elif "series a" in user_lower or "early stage" in user_lower or "early-stage" in user_lower:
+            employee_range = [10, 150]
+        # "hiring aggressively" or "startup" alone does NOT restrict size
 
         # Extract persona hints
         personas = []
         if "vp sales" in user_lower or "sales" in user_lower:
             personas.append("vp_sales")
-        if "cto" in user_lower or "technical" in user_lower:
+        if "cto" in user_lower or "technical" in user_lower or "engineer" in user_lower:
             personas.append("cto")
-        if "ceo" in user_lower:
+        if "ceo" in user_lower or "founder" in user_lower:
             personas.append("ceo")
+        if "head of growth" in user_lower or "growth" in user_lower:
+            personas.append("head_of_growth")
         if not personas:
             personas = ["vp_sales"]
+
+        geo_label = f"in {', '.join(geos)}" if geos else "globally"
+        filters: dict = {"industry": industries}
+        if geos:
+            filters["geography"] = geos
+        if employee_range:
+            filters["employee_range"] = employee_range
+
+        # Tag hiring-aggressive queries with keywords
+        if "hiring" in user_lower or "aggressively" in user_lower or "scaling" in user_lower:
+            filters["keywords"] = ["hiring"]
 
         return json.dumps({
             "entity_type": "company",
             "tasks": ["search", "enrich", "analyze_signals", "score_icp", "generate_outreach"],
-            "filters": {
-                "industry": industries,
-                "geography": geos,
-                "employee_range": [30, 500],
-                "keywords": industries,
-            },
-            "strategy": f"Target {', '.join(industries)} companies in {', '.join(geos)} market with strong growth signals. Focus on companies showing hiring velocity and recent funding.",
+            "filters": filters,
+            "strategy": f"Target {', '.join(industries)} companies {geo_label} with strong growth signals. Focus on companies showing hiring velocity and recent funding.",
             "target_personas": personas,
             "confidence": round(random.uniform(0.72, 0.92), 2),
-            "reasoning_summary": f"Query targets {', '.join(industries)} sector in {', '.join(geos)}. Extracted {len(industries)} industry filters, {len(personas)} personas. High confidence due to clear query intent.",
+            "reasoning_summary": f"Query targets {', '.join(industries)} sector {geo_label}. Extracted {len(industries)} industry filters, {len(personas)} personas. High confidence due to clear query intent.",
         })
 
     def _extract_json_array(self, text: str, after_marker: str) -> list:

@@ -88,10 +88,36 @@ class EnrichmentAgent(BaseAgent[EnrichmentInput, EnrichmentOutput]):
                     "Enrichment failed for %s/%s: %s", company.name, sig_type, e
                 )
 
-        # Calculate completeness
-        requested = len(signal_types)
-        filled = requested - len(missing)
-        completeness = filled / max(requested, 1)
+        # Calculate completeness based on signal quality, not just provider response.
+        # A signal that came back but with all-null key fields counts as 0.5
+        # (partial) rather than 1.0, to avoid misleading the critic.
+        def _signal_fill(signal: Any, key_field: str) -> float:
+            if signal is None:
+                return 0.0
+            return 1.0 if getattr(signal, key_field, None) is not None else 0.5
+
+        fill_scores = []
+        for sig_type in signal_types:
+            if sig_type in missing:
+                fill_scores.append(0.0)
+            elif sig_type == "hiring":
+                fill_scores.append(_signal_fill(hiring, "open_roles"))
+            elif sig_type == "growth":
+                fill_scores.append(_signal_fill(growth, "employee_growth_6m"))
+            elif sig_type == "tech_stack":
+                fill_scores.append(_signal_fill(tech, "detected_technologies"))
+            elif sig_type == "competitors":
+                fill_scores.append(_signal_fill(competitors, "current_tools"))
+            else:
+                fill_scores.append(1.0)
+
+        completeness = sum(fill_scores) / max(len(fill_scores), 1)
+
+        # Track sparse signals as partial missing so critic sees them correctly
+        partial_missing = [
+            sig_type for sig_type, score in zip(signal_types, fill_scores)
+            if 0.0 < score < 1.0
+        ]
 
         return EnrichedCompany(
             company=company,
@@ -99,8 +125,8 @@ class EnrichmentAgent(BaseAgent[EnrichmentInput, EnrichmentOutput]):
             growth=growth,
             tech_stack=tech,
             competitors=competitors,
-            enrichment_completeness=completeness,
-            missing_fields=missing,
+            enrichment_completeness=round(completeness, 3),
+            missing_fields=missing + [f"{s}_sparse" for s in partial_missing],
         )
 
     async def _execute(self, input_data: EnrichmentInput) -> EnrichmentOutput:

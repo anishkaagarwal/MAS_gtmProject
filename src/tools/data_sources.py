@@ -2399,7 +2399,11 @@ def _matches_filter(company: dict, filters: RetrievalFilter) -> bool:
     if filters.industry:
         industry = company.get("industry") or ""
         if not _fuzzy_match(industry, filters.industry, _INDUSTRY_ALIASES):
-            # Also check description for industry keywords
+            # Fall back to description only when the company has NO industry tag.
+            # If an explicit tag exists but doesn't match, reject — prevents leakage
+            # (e.g. a "saas" company whose description mentions "fintech" in passing).
+            if industry:
+                return False
             desc = (company.get("description") or "").lower()
             if not any(ind.lower() in desc for ind in filters.industry):
                 return False
@@ -2457,11 +2461,11 @@ class MockDataSource:
         # Convert to CompanyRecord, adding noise
         records = []
         for c in matches:
-            # 10% chance of missing some fields (simulates incomplete API data)
+            # Small chance of missing fields (simulates incomplete API data)
             record_data = dict(c)
-            if random.random() < 0.1:
+            if random.random() < 0.03:
                 record_data["employee_count"] = None
-            if random.random() < 0.15:
+            if random.random() < 0.05:
                 record_data["funding_total_usd"] = None
 
             # Add slight noise to employee count

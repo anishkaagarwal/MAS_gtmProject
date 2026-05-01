@@ -63,6 +63,8 @@ class PipelineConfig(BaseModel):
     max_wall_clock_seconds: float = 120.0
     min_companies_required: int = 3
     min_critic_quality: float = 0.35
+    max_companies_to_enrich: int = 10   # cap to avoid slow/noisy enrichment on large result sets
+    max_companies_for_gtm: int = 5      # only generate outreach for the top-scored companies
 
 
 class PipelineOrchestrator:
@@ -250,6 +252,25 @@ class PipelineOrchestrator:
                 continue
 
             # ── STEP 3: ENRICH ──
+
+            # Cap companies before enrichment to avoid slow runs on large result sets.
+            # Sort by funding (proxy for hiring capacity) so the most relevant
+            # companies are enriched first.
+            cap = self.config.max_companies_to_enrich
+            if len(retrieval_output.companies) > cap:
+                sorted_companies = sorted(
+                    retrieval_output.companies,
+                    key=lambda c: (c.funding_total_usd or 0),
+                    reverse=True,
+                )
+                retrieval_output = retrieval_output.model_copy(
+                    update={"companies": sorted_companies[:cap]}
+                )
+                logger.info(
+                    "Capped enrichment to top %d companies (was %d)",
+                    cap, retrieval_output.total_found,
+                )
+
             await self._emit(PipelineEvent(
                 event_type="stage_start", agent="enrichment", attempt=pipeline_attempt
             ))
@@ -368,6 +389,20 @@ class PipelineOrchestrator:
             ))
 
             # ── STEP 6: GTM STRATEGY ──
+
+            # Limit to top-N companies by composite ICP score so the LLM generates
+            # focused, high-quality outreach rather than thin coverage across all.
+            gtm_cap = self.config.max_companies_for_gtm
+            if len(approved_companies) > gtm_cap:
+                score_map = {s.company_id: s.composite_score for s in icp_scores}
+                approved_companies = sorted(
+                    approved_companies,
+                    key=lambda ec: score_map.get(ec.company.company_id, 0.0),
+                    reverse=True,
+                )[:gtm_cap]
+                icp_scores = [s for s in icp_scores if s.company_id in {ec.company.company_id for ec in approved_companies}]
+                logger.info("Capped GTM strategy to top %d companies by ICP score", gtm_cap)
+
             await self._emit(PipelineEvent(
                 event_type="stage_start", agent="gtm_strategy", attempt=pipeline_attempt
             ))

@@ -102,13 +102,19 @@ class RetrievalAgent(BaseAgent[RetrievalInput, RetrievalOutput]):
                 base.funding_stage = None
 
         if relaxation_level >= 2:
-            # Keep only industry + geography
+            # Keep only industry; drop geography to go global
             if base.tech_stack:
                 relaxed.append("tech_stack")
                 base.tech_stack = None
             if base.founded_after:
                 relaxed.append("founded_after")
                 base.founded_after = None
+            if base.geography:
+                relaxed.append("geography")
+                base.geography = None
+            if base.keywords:
+                relaxed.append("keywords")
+                base.keywords = None
 
         return base, relaxed
 

@@ -43,11 +43,18 @@ produce a structured execution plan.
 Rules:
 1. Extract entity_type: "company", "person", or "both".
 2. Identify concrete filters (industry, geography, size, funding stage, keywords).
+   IMPORTANT filter rules:
+   - Only add geography if the query explicitly names a region/country. Omit it for global queries.
+   - "startup" means high hiring velocity, NOT necessarily early-stage funding. Do NOT restrict
+     funding_stage to series_a/series_b unless the user explicitly says early-stage.
+   - "hiring aggressively" is a signal hint — add keywords: ["hiring"] but do NOT restrict
+     funding_stage or employee_range, as aggressive hiring happens across all stages.
 3. Decide which tasks to run: subset of [search, enrich, analyze_signals, score_icp, generate_outreach].
 4. Identify target personas from: ceo, vp_sales, cto, vp_engineering, head_of_growth.
 5. If the query is ambiguous, set confidence < 0.6 and note what is unclear in reasoning_summary.
 6. If a previous_plan is provided, you are RE-PLANNING after a failed attempt.
-   Incorporate the feedback and adjust filters or strategy.
+   Incorporate the feedback and adjust filters or strategy. Widen filters if previous attempt
+   found zero results.
 
 Output ONLY valid JSON matching this schema:
 {

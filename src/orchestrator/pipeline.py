@@ -412,6 +412,15 @@ class PipelineOrchestrator:
                     company_signals["competitors"] = ec.competitors.model_dump()
                 signals.append(company_signals)
 
+            # Data confidence gates the result; GTM is non-fatal (may fail due to
+            # LLM rate limits) so it reduces confidence by at most 20%.
+            data_confidence = min(
+                plan.confidence,
+                critic_output.overall_quality if critic_output else 0.0,
+            )
+            gtm_weight = 0.8 + 0.2 * gtm_output.confidence
+            pipeline_confidence = round(data_confidence * gtm_weight, 3)
+
             result = PipelineResult(
                 query=query,
                 plan=plan,
@@ -419,11 +428,7 @@ class PipelineOrchestrator:
                 signals=signals,
                 gtm_strategy=gtm_output,
                 icp_scores=icp_scores,
-                confidence=min(
-                    plan.confidence,
-                    critic_output.overall_quality if critic_output else 0.0,
-                    gtm_output.confidence,
-                ),
+                confidence=pipeline_confidence,
                 reasoning_trace=self._traces,
                 total_duration_ms=total_duration,
                 retries=pipeline_attempt - 1,

@@ -20,6 +20,8 @@ The system will:
 Results display in a real-time UI with a downloadable PDF report.
 
 **This is not a simple LLM pipeline — it is a reasoning-driven, failure-aware, self-correcting system.
+
+deployed on vercel for frontend and railway for backend. Try it yourself: https://mas-gtm-projecth.vercel.app/
 ---
 
 ## Quick Start
